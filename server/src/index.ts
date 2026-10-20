@@ -24,8 +24,12 @@ app.use(helmet({
 }));
 
 // CORS Configuration
+const allowedOrigins = process.env.CLIENT_URL
+  ? [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:4173']
+  : true; // Allow all in development if CLIENT_URL is not set
+
 app.use(cors({
-  origin: true, // Allow frontend dev server
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

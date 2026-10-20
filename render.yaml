@@ -1,0 +1,25 @@
+# Render.com Blueprint — DTN India Backend API
+# This file auto-configures the backend service on Render
+
+services:
+  - type: web
+    name: dtn-india-api
+    runtime: node
+    region: singapore  # Closest to Indian users
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "24h"
+      - key: PAYMENT_MODE
+        value: simulated
+      - key: CLIENT_URL
+        sync: false  # Set this to your Netlify URL after deployment
