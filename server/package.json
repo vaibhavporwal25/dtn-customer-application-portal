@@ -24,6 +24,7 @@
     "morgan": "^1.12.1",
     "multer": "^2.4.0",
     "sql.js": "^1.15.0",
+    "tsx": "^4.23.15",
     "uuid": "^14.0.3"
   },
   "devDependencies": {
@@ -36,7 +37,6 @@
     "@types/node": "^26.6.5",
     "@types/sql.js": "^1.4.11",
     "@types/uuid": "^10.0.0",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }
