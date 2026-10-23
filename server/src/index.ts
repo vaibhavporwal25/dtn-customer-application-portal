@@ -23,13 +23,49 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-// CORS Configuration
-const allowedOrigins = process.env.CLIENT_URL
-  ? [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:4173']
-  : true; // Allow all in development if CLIENT_URL is not set
+// CORS Configuration: explicitly permit the production Netlify deployment, approved previews, and CLIENT_URL
+const defaultAllowedOrigins = [
+  'https://dtn-india-apply.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:4173',
+  'http://127.0.0.1:5000'
+];
+
+const envOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((url) => url.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const allowedOriginsSet = new Set([...defaultAllowedOrigins, ...envOrigins]);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (requestOrigin, callback) => {
+    // Allow server-to-server, health checkers, or curl requests with no origin header
+    if (!requestOrigin) {
+      return callback(null, true);
+    }
+    const cleanOrigin = requestOrigin.replace(/\/+$/, '');
+
+    if (allowedOriginsSet.has(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // Allow Netlify deploy previews for DTN India portal
+    if (/^https:\/\/([a-zA-Z0-9-]+--)?dtn-india-apply\.netlify\.app$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // In local development, allow any localhost port
+    if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error(`CORS origin '${requestOrigin}' not allowed`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

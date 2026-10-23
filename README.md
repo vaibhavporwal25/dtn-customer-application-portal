@@ -129,13 +129,13 @@ Access at: **`http://localhost:5000`**
 
 ---
 
-## 🔑 Demonstration Credentials & URLs
+## 🔑 Accessing the Portals
 
 | Portal | URL | Credentials / Notes |
 |---|---|---|
-| **Customer Application Portal** | `http://localhost:5173` or `http://localhost:5000` | No login required for customers |
+| **Customer Application Portal** | `http://localhost:5173` or `https://dtn-india-apply.netlify.app` | Public access (no login required) |
 | **Application Status Tracker** | Click **"Track Status"** in header | Search by Application ID (e.g. `DTN-2026-000101`) |
-| **Administrator Dashboard** | Click **"Admin Dashboard"** in header | **Username**: `admin`<br>**Password**: `Admin@DTN2026!` |
+| **Administrator Dashboard** | Click **"Admin Dashboard"** in header | Configured via `ADMIN_USERNAME` & `ADMIN_PASSWORD` on Render or `.env` |
 
 ---
 
@@ -168,7 +168,7 @@ Access at: **`http://localhost:5000`**
 
 ## 📊 Administrator Dashboard & Excel Export
 
-1. Log in at the Administrator Portal with `admin` / `Admin@DTN2026!`.
+1. Log in at the Administrator Portal using your configured administrator credentials.
 2. View real-time metric cards (Total Applications, Submitted, Under Review, Approved, Paid, Pending/Failed).
 3. Search by Application ID, Name, Phone, Email, or Organization.
 4. Filter by Category, Application Status, Payment Status, or Date range.
@@ -232,6 +232,41 @@ cd ..
 - `[TEST 7]` Admin stats calculation & multi-field search
 - `[TEST 8]` Status transition with audit trail logging
 - `[TEST 9]` ExcelJS workbook generation, corporate formatting, and export
+
+---
+
+## 🔐 Administrator Account Security & Password Rotation
+
+Administrator accounts are never created with hardcoded public credentials. The credentials are managed securely via environment variables:
+
+1. **Setting Administrator Credentials on Render**:
+   - In the Render Dashboard under **Environment Variables**, configure:
+     - `ADMIN_USERNAME`: Your administrator login name (e.g. `admin`)
+     - `ADMIN_EMAIL`: Your corporate administrative email (e.g. `admin@dtnindia.com`)
+     - `ADMIN_PASSWORD`: A strong, private password (min 8 characters)
+2. **Rotating the Administrator Password**:
+   - **Method A (CLI Script)**:
+     ```bash
+     cd server
+     npm run rotate-admin admin "YourNewStrongPassword123!"
+     ```
+   - **Method B (Environment Variable on Render)**:
+     Set `ADMIN_PASSWORD="YourNewStrongPassword123!"` and set `ADMIN_ROTATE_PASSWORD=true` in Render environment variables. The server will safely rotate the hash on its next boot. Once rotated, you may remove `ADMIN_ROTATE_PASSWORD`.
+
+---
+
+## 💾 Production Database & Storage Persistence Architecture
+
+### Current Demonstration Architecture:
+- **Database**: SQLite via `sql.js` saved to `server/data/dtn_application_portal.db`.
+- **Uploaded Documents**: Sandboxed local filesystem storage under `server/uploads/`.
+
+### Render Free Tier Persistence Limitations:
+Render's free tier web services operate on an **ephemeral container filesystem**. Any files written to `server/data/` or `server/uploads/` will be reset whenever the free container spins down (after 15 minutes of inactivity), restarts, or is redeployed.
+
+### Recommended Production Solution:
+1. **Managed Relational Database**: Connect to a managed PostgreSQL database (e.g. Render Managed Postgres, Supabase, or AWS RDS) using the standard `DATABASE_URL` environment variable.
+2. **Persistent Document Storage**: Store uploaded customer identity and address documents in a private cloud object storage bucket (e.g. AWS S3, Cloudflare R2, or Google Cloud Storage) with signed URL access, rather than ephemeral local disk.
 
 ---
 

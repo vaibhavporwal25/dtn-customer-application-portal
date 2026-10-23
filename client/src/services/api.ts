@@ -1,12 +1,33 @@
 import { FormDataState, PlanItem, SubmissionResponse } from '../types/index.js';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
+// Resolve API base URL: check VITE_API_BASE_URL first, then VITE_API_URL.
+// In production builds, default to the real deployed Render backend instead of localhost.
+const rawApiBase: string =
+  (import.meta as any).env?.VITE_API_BASE_URL ||
+  (import.meta as any).env?.VITE_API_URL ||
+  ((import.meta as any).env?.PROD
+    ? 'https://dtn-customer-application-portal.onrender.com/api'
+    : 'http://localhost:5000/api');
+
+export const API_BASE = rawApiBase.replace(/\/+$/, '');
 
 export async function fetchPlans(): Promise<PlanItem[]> {
-  const res = await fetch(`${API_BASE}/plans`);
-  if (!res.ok) throw new Error('Failed to fetch internet plans');
-  const json = await res.json();
-  return json.data;
+  try {
+    const res = await fetch(`${API_BASE}/plans`);
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.message || `Failed to fetch internet plans (${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || [];
+  } catch (err: any) {
+    if (err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch')) {
+      throw new Error(
+        'Unable to connect to the backend server. Please verify the backend service is running and CORS allows this domain.'
+      );
+    }
+    throw err;
+  }
 }
 
 export async function uploadDocumentFile(
@@ -117,14 +138,25 @@ export async function simulatePaymentApi(orderId: string, outcome: 'SUCCESS' | '
 
 // Admin APIs
 export async function adminLoginApi(username: string, password: string) {
-  const res = await fetch(`${API_BASE}/admin/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message || 'Login failed');
-  return json;
+  try {
+    const res = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(json?.message || `Authentication failed (${res.status})`);
+    }
+    return json;
+  } catch (err: any) {
+    if (err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch')) {
+      throw new Error(
+        'Unable to connect to the authentication server. Please verify the backend service is running and CORS allows this domain.'
+      );
+    }
+    throw err;
+  }
 }
 
 export async function fetchAdminStats(token: string) {

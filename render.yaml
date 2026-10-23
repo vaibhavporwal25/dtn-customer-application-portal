@@ -1,14 +1,14 @@
 # Render.com Blueprint — DTN India Backend API
-# This file auto-configures the backend service on Render
+# Digital Telco Network India Pvt. Ltd. (DTN India)
 
 services:
   - type: web
-    name: dtn-india-api
+    name: dtn-customer-application-portal
     runtime: node
     region: singapore  # Closest to Indian users
     plan: free
     rootDir: server
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -22,4 +22,13 @@ services:
       - key: PAYMENT_MODE
         value: simulated
       - key: CLIENT_URL
-        sync: false  # Set this to your Netlify URL after deployment
+        value: https://dtn-india-apply.netlify.app
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false  # Configure your secret administrator password in Render Dashboard > Environment Variables
+      - key: DB_FILE
+        value: ./data/dtn_application_portal.db
+      - key: UPLOAD_DIR
+        value: ./uploads
+

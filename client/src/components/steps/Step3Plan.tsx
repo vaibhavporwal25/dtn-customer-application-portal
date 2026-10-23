@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormDataState, PlanItem, BillingFrequency } from '../../types/index.js';
-import { Wifi, Zap, CheckCircle2, AlertCircle, Info, Calculator } from 'lucide-react';
+import { Wifi, Zap, CheckCircle2, AlertCircle, Info, Calculator, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Step3Props {
   formData: FormDataState;
@@ -8,6 +8,8 @@ interface Step3Props {
   onChange: (fields: Partial<FormDataState>) => void;
   errors: Record<string, string>;
   isLoadingPlans: boolean;
+  plansError?: string | null;
+  onRetryPlans?: () => void;
 }
 
 const FREQUENCIES: { value: BillingFrequency; label: string; badge?: string; desc: string }[] = [
@@ -17,7 +19,15 @@ const FREQUENCIES: { value: BillingFrequency; label: string; badge?: string; des
   { value: 'Annual', label: 'Annual (12 Months)', badge: '20% Saved + FREE Installation', desc: 'Maximum savings & free setup' }
 ];
 
-export const Step3Plan: React.FC<Step3Props> = ({ formData, plans, onChange, errors, isLoadingPlans }) => {
+export const Step3Plan: React.FC<Step3Props> = ({
+  formData,
+  plans,
+  onChange,
+  errors,
+  isLoadingPlans,
+  plansError,
+  onRetryPlans
+}) => {
   const selectedPlan = plans.find((p) => p.id === formData.planId) || plans[0] || null;
   const currentPricing = selectedPlan ? selectedPlan.frequencies[formData.billingFrequency] : null;
 
@@ -104,8 +114,68 @@ export const Step3Plan: React.FC<Step3Props> = ({ formData, plans, onChange, err
         </div>
 
         {isLoadingPlans ? (
-          <div className="py-12 text-center text-slate-500 text-sm">
-            Loading demonstration plans...
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-2 py-3 text-teal-800 text-xs font-semibold">
+              <Loader2 className="w-4 h-4 animate-spin text-teal-700" />
+              <span>Fetching available optical fibre plans...</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((idx) => (
+                <div key={idx} className="p-5 rounded-2xl border border-slate-200 bg-white animate-pulse space-y-4">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-slate-200 rounded w-20" />
+                    <div className="h-4 bg-slate-200 rounded w-16" />
+                  </div>
+                  <div className="h-8 bg-slate-200 rounded w-32" />
+                  <div className="h-3 bg-slate-100 rounded w-48" />
+                  <div className="h-3 bg-slate-100 rounded w-full" />
+                  <div className="pt-3 border-t border-slate-100 flex justify-between">
+                    <div className="h-6 bg-slate-200 rounded w-20" />
+                    <div className="h-6 bg-slate-200 rounded w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : plansError ? (
+          <div className="p-6 bg-red-50/90 border border-red-200 rounded-2xl text-center space-y-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-red-950">Unable to Load Internet Packages</h4>
+              <p className="text-xs text-red-700 mt-1 max-w-lg mx-auto leading-relaxed">
+                {plansError}
+              </p>
+            </div>
+            {onRetryPlans && (
+              <button
+                type="button"
+                onClick={onRetryPlans}
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Loading Plans</span>
+              </button>
+            )}
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-3">
+            <Info className="w-8 h-8 text-slate-400 mx-auto" />
+            <h4 className="text-sm font-bold text-slate-800">No Internet Plans Available</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              There are currently no active broadband packages returned by the system.
+            </p>
+            {onRetryPlans && (
+              <button
+                type="button"
+                onClick={onRetryPlans}
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Check Again</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,7 +260,12 @@ export const Step3Plan: React.FC<Step3Props> = ({ formData, plans, onChange, err
           </div>
         )}
 
-        {errors.planId && <p className="text-xs text-red-600 font-medium">{errors.planId}</p>}
+        {errors.planId && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{errors.planId}</span>
+          </div>
+        )}
       </div>
 
       {/* Section 3: Live Pricing Breakdown Summary */}

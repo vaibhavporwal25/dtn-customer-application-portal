@@ -5,9 +5,10 @@ import jwt from 'jsonwebtoken';
 import { execute, queryOne, query } from '../db/database.js';
 import { DocumentRecord } from '../types/index.js';
 import { UPLOAD_DIR } from '../middleware/upload.js';
+import { JWT_SECRET } from '../middleware/auth.js';
 
 function isAuthorizedForDocument(req: Request, doc: DocumentRecord): boolean {
-  // Allow draft unlinked documents to be accessed by the client in active session
+  // Allow draft unlinked documents to be accessed by the client in active session during step 4
   if (doc.application_id === 0) {
     return true;
   }
@@ -16,9 +17,8 @@ function isAuthorizedForDocument(req: Request, doc: DocumentRecord): boolean {
   const token = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.split(' ')[1] : queryToken;
   if (!token) return false;
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'dtn_india_secure_jwt_token_secret_key_demo_2026_change_in_production';
-    jwt.verify(token, JWT_SECRET);
-    return true;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    return !!(decoded && decoded.id && (decoded.role === 'admin' || decoded.role === 'superadmin'));
   } catch {
     return false;
   }

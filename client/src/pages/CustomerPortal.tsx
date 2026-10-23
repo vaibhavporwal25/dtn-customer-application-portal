@@ -64,30 +64,43 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onTrackApplicati
   const [formData, setFormData] = useState<FormDataState>(INITIAL_FORM_STATE);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [plansError, setPlansError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = useState<SubmissionResponse | null>(null);
 
-  // Fetch demonstration plans
-  useEffect(() => {
-    async function load() {
-      try {
-        setIsLoadingPlans(true);
-        const data = await fetchPlans();
-        setPlans(data);
-        if (data.length > 0 && !formData.planId) {
-          // Default select the 2nd plan (150 Mbps - Most Popular)
-          const defaultPlan = data[1] || data[0];
-          setFormData((prev) => ({ ...prev, planId: defaultPlan.id }));
-        }
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-      } finally {
-        setIsLoadingPlans(false);
+  // Fetch demonstration plans with error handling and retry support
+  const loadPlans = async () => {
+    try {
+      setIsLoadingPlans(true);
+      setPlansError(null);
+      const data = await fetchPlans();
+      setPlans(data);
+      if (data.length > 0) {
+        setFormData((prev) => {
+          // If no plan is selected or previous planId is not in returned list, select popular plan
+          if (!prev.planId || !data.some((p) => p.id === prev.planId)) {
+            const defaultPlan = data[1] || data[0];
+            return { ...prev, planId: defaultPlan.id };
+          }
+          return prev;
+        });
       }
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+      setPlansError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to connect to broadband package service. Please verify server status.'
+      );
+    } finally {
+      setIsLoadingPlans(false);
     }
-    load();
+  };
+
+  useEffect(() => {
+    loadPlans();
   }, []);
 
   const updateFormData = (fields: Partial<FormDataState>) => {
@@ -198,11 +211,19 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onTrackApplicati
       setCurrentStep(targetStep);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (targetStep > currentStep) {
-      // Validate current before jumping forward
-      if (validateStep(currentStep)) {
-        setCurrentStep(targetStep);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Validate all intervening steps sequentially before allowing forward progression
+      for (let s = currentStep; s < targetStep; s++) {
+        if (!validateStep(s)) {
+          setCurrentStep(s);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
       }
+      setCurrentStep(targetStep);
+      if (targetStep > maxVisitedStep) {
+        setMaxVisitedStep(targetStep);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -281,6 +302,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onTrackApplicati
               onChange={updateFormData}
               errors={errors}
               isLoadingPlans={isLoadingPlans}
+              plansError={plansError}
+              onRetryPlans={loadPlans}
             />
           )}
 
@@ -332,7 +355,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({ onTrackApplicati
             <button
               type="button"
               onClick={handleNext}
-              className="px-6 sm:px-8 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+              disabled={currentStep === 3 && (isLoadingPlans || !!plansError || !formData.planId)}
+              className={`px-6 sm:px-8 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 ${
+                currentStep === 3 && (isLoadingPlans || !!plansError || !formData.planId)
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                  : 'bg-teal-800 hover:bg-teal-900 text-white cursor-pointer'
+              }`}
             >
               <span>Continue to Step {currentStep + 1}</span>
               <ArrowRight className="w-4 h-4" />

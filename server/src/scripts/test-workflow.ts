@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = process.env.TEST_API_URL || 'http://localhost:5000/api';
 
 async function runTests() {
   console.log('========================================================');
@@ -194,10 +194,12 @@ async function runTests() {
 
   // Test 6: Administrator Login & Authorization
   console.log('\n[TEST 6] Testing Administrator Authentication & Protected Routes...');
+  const testAdminUser = process.env.ADMIN_USERNAME || 'admin';
+  const testAdminPass = process.env.ADMIN_PASSWORD || 'DevAdmin@DTN2026!';
   const adminLoginRes = await fetch(`${BASE_URL}/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'Admin@DTN2026!' })
+    body: JSON.stringify({ username: testAdminUser, password: testAdminPass })
   });
   const adminLoginJson = await adminLoginRes.json();
   if (!adminLoginRes.ok || !adminLoginJson.token) {

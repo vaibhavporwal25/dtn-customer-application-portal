@@ -44,9 +44,9 @@ export const AdminPortal: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Login form states
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('Admin@DTN2026!');
+  // Login form states (secured: no hardcoded or pre-filled credentials)
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -256,10 +256,9 @@ export const AdminPortal: React.FC = () => {
             </button>
           </form>
 
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 leading-relaxed space-y-1">
-            <span className="font-bold text-slate-700 block">Demonstration Credentials:</span>
-            <div>Username: <strong className="text-slate-800">admin</strong></div>
-            <div>Password: <strong className="text-slate-800">Admin@DTN2026!</strong></div>
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 text-center leading-relaxed">
+            <span className="font-semibold text-slate-700">Authorized Personnel Only</span>
+            <p className="mt-0.5 text-slate-400">All administrative operations and access attempts are logged for security auditing.</p>
           </div>
         </div>
       </div>

@@ -84,25 +84,49 @@ export async function seedDatabase() {
     console.log('Seeded 4 demonstration internet plans.');
   }
 
-  // Check if admin exists
-  const existingAdmins = await query('SELECT COUNT(*) as count FROM admins');
-  if (existingAdmins[0]?.count === 0) {
-    console.log('Creating initial administrator account...');
-    const salt = bcrypt.genSaltSync(12);
-    const hash = bcrypt.hashSync('Admin@DTN2026!', salt);
+  // Check if admin exists or if rotation was requested
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@dtnindia.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD;
+  const rotateRequested = process.env.ADMIN_ROTATE_PASSWORD === 'true';
 
+  const existingAdmins = await query('SELECT id, username, email FROM admins WHERE username = ? OR email = ?', [
+    adminUsername,
+    adminEmail
+  ]);
+
+  if (existingAdmins.length === 0) {
+    console.log('[Seed] Initializing administrator account...');
+    // In production, require ADMIN_PASSWORD in environment. For local development, fallback if not set.
+    const resolvedPassword = adminPassword || (process.env.NODE_ENV !== 'production' ? 'DevAdmin@DTN2026!' : null);
+
+    if (resolvedPassword) {
+      const salt = bcrypt.genSaltSync(12);
+      const hash = bcrypt.hashSync(resolvedPassword, salt);
+
+      await execute(`
+        INSERT INTO admins (username, email, password_hash, full_name, role, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        adminUsername,
+        adminEmail,
+        hash,
+        'DTN System Administrator',
+        'superadmin',
+        new Date().toISOString()
+      ]);
+      console.log(`[Seed] Administrator account (${adminUsername}) created successfully.`);
+    } else {
+      console.warn('[Seed] WARNING: ADMIN_PASSWORD environment variable not configured in production. Set ADMIN_PASSWORD on Render.');
+    }
+  } else if (rotateRequested && adminPassword) {
+    console.log(`[Seed] ADMIN_ROTATE_PASSWORD detected. Rotating password for administrator: ${adminUsername}...`);
+    const salt = bcrypt.genSaltSync(12);
+    const hash = bcrypt.hashSync(adminPassword, salt);
     await execute(`
-      INSERT INTO admins (username, email, password_hash, full_name, role, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [
-      'admin',
-      'admin@dtnindia.com',
-      hash,
-      'DTN System Administrator',
-      'superadmin',
-      new Date().toISOString()
-    ]);
-    console.log('Admin account created: username: "admin" / password: "Admin@DTN2026!"');
+      UPDATE admins SET password_hash = ? WHERE username = ? OR email = ?
+    `, [hash, adminUsername, adminEmail]);
+    console.log(`[Seed] Administrator credentials rotated successfully.`);
   }
 
   // Check if we should seed a few sample applications for demonstration inspection

@@ -11,7 +11,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dtn_india_secure_jwt_token_secret_key_demo_2026_change_in_production';
+export const JWT_SECRET = process.env.JWT_SECRET || 'dtn_india_secure_jwt_token_secret_key_demo_2026_change_in_production';
 
 export function generateToken(payload: { id: number; username: string; email: string; role: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
